@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -11,46 +11,46 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── LIGHT THEME (default) ── */
-[data-theme="light"] {
-  --bg:       #f0f4ff;
-  --surface:  #ffffff;
-  --surface2: #e8eef8;
-  --border:   #d0d9ee;
-  --accent:   #2563eb;
-  --accent-l: #dbeafe;
-  --accent2:  #0ea5e9;
-  --accent3:  #10b981;
-  --danger:   #ef4444;
-  --warn:     #f59e0b;
-  --text:     #0f172a;
-  --muted:    #64748b;
-  --nav-bg:   #ffffff;
-  --shadow:   0 1px 8px rgba(37,99,235,0.08);
-  --ring-bg:  #dbeafe;
-  --btn-text: #ffffff;
-  --play-shadow: rgba(37,99,235,0.35);
+/* ── DARK THEME (default — original) ── */
+[data-theme="dark"] {
+  --bg:        #0e0f13;
+  --surface:   #16181f;
+  --surface2:  #1e2029;
+  --border:    #2a2d3a;
+  --accent:    #f0e06a;
+  --accent-l:  rgba(240,224,106,0.1);
+  --accent2:   #7c6af7;
+  --accent3:   #4cf0b0;
+  --danger:    #f06a6a;
+  --warn:      #f0a96a;
+  --text:      #e8eaf0;
+  --muted:     #6b7080;
+  --nav-bg:    #16181f;
+  --shadow:    0 1px 8px rgba(0,0,0,0.4);
+  --ring-bg:   #1e2029;
+  --btn-text:  #0e0f13;
+  --play-shadow: rgba(240,224,106,0.3);
 }
 
-/* ── DARK THEME ── */
-[data-theme="dark"] {
-  --bg:       #0a0f1e;
-  --surface:  #111827;
-  --surface2: #1e2a3a;
-  --border:   #1e3a5f;
-  --accent:   #3b82f6;
-  --accent-l: #1e3a5f;
-  --accent2:  #0ea5e9;
-  --accent3:  #10b981;
-  --danger:   #f87171;
-  --warn:     #fbbf24;
-  --text:     #e2e8f0;
-  --muted:    #64748b;
-  --nav-bg:   #111827;
-  --shadow:   0 1px 12px rgba(0,0,0,0.4);
-  --ring-bg:  #1e3a5f;
-  --btn-text: #ffffff;
-  --play-shadow: rgba(59,130,246,0.4);
+/* ── LIGHT THEME ── */
+[data-theme="light"] {
+  --bg:        #f5f6fa;
+  --surface:   #ffffff;
+  --surface2:  #eef0f6;
+  --border:    #e0e3ef;
+  --accent:    #f0e06a;
+  --accent-l:  rgba(240,224,106,0.15);
+  --accent2:   #7c6af7;
+  --accent3:   #10b981;
+  --danger:    #ef4444;
+  --warn:      #f59e0b;
+  --text:      #0f172a;
+  --muted:     #64748b;
+  --nav-bg:    #ffffff;
+  --shadow:    0 2px 12px rgba(0,0,0,0.07);
+  --ring-bg:   #e0e3ef;
+  --btn-text:  #0f172a;
+  --play-shadow: rgba(124,106,247,0.25);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -577,7 +577,7 @@ function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme');
   applyTheme(cur === 'light' ? 'dark' : 'light');
 }
-applyTheme(localStorage.getItem('sf_theme') || 'light');
+applyTheme(localStorage.getItem('sf_theme') || 'dark');
 
 // ── INIT ──
 window.onload = () => {
