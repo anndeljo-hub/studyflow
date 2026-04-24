@@ -1,6 +1,6 @@
 // ⚡ Change this version number every time you push an update
 // This forces the installed app to refresh automatically
-const CACHE_VERSION = 'studyflow-v7';
+const CACHE_VERSION = 'studyflow-v9';
 
 const FILES = [
   './index.html',
