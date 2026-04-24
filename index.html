@@ -509,7 +509,29 @@ updatePills();
 
 // PWA
 let deferredPrompt;
-if ('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // Check for updates every 60 seconds
+      setInterval(() => reg.update(), 60000);
+      // When a new service worker is waiting, reload the app
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version ready — reload silently
+            navigator.serviceWorker.controller.postMessage('skipWaiting');
+            window.location.reload();
+          }
+        });
+      });
+    }).catch(() => {});
+    // Reload if SW controller changes (new SW took over)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+  });
+}
 window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredPrompt=e; document.getElementById('install-bar').classList.add('show'); });
 document.getElementById('install-btn').addEventListener('click',async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null; document.getElementById('install-bar').classList.remove('show'); });
 </script>
