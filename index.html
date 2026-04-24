@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>StudyFlow — Smart Student Time Manager</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f0e06a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StudyFlow">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f13;
+    --surface: #16181f;
+    --surface2: #1e2029;
+    --border: #2a2d3a;
+    --accent: #f0e06a;
+    --accent2: #7c6af7;
+    --accent3: #4cf0b0;
+    --danger: #f06a6a;
+    --text: #e8eaf0;
+    --muted: #6b7080;
+    --high: #f06a6a;
+    --med: #f0a96a;
+    --low: #4cf0b0;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 9999; opacity: 0.4;
+  }
+
+  /* HEADER */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1.2rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(14,15,19,0.95);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 1.3rem;
+    letter-spacing: -0.03em;
+  }
+  .logo span { color: var(--accent); }
+  .date-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3rem 0.9rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  /* ALERTS BANNER */
+  #alerts-banner {
+    display: none;
+    background: linear-gradient(90deg, rgba(240,106,106,0.12), rgba(240,106,106,0.04));
+    border-bottom: 1px solid rgba(240,106,106,0.3);
+    padding: 0.6rem 2rem;
+    font-size: 0.82rem;
+    color: var(--danger);
+    display: flex; align-items: center; gap: 0.6rem;
+    animation: slideDown 0.3s ease;
+  }
+  @keyframes slideDown { from { transform: translateY(-100%); opacity:0; } to { transform: translateY(0); opacity:1; } }
+  #alerts-banner.hidden { display: none !important; }
+
+  /* LAYOUT */
+  .app-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* LEFT PANEL */
+  .main-panel {
+    padding: 2rem;
+    border-right: 1px solid var(--border);
+  }
+
+  /* RIGHT SIDEBAR */
+  .sidebar {
+    padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1.5rem;
+  }
+
+  /* SECTION HEADERS */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* TASK INPUT */
+  .task-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  .task-form h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+  input[type="text"], input[type="date"], select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus, select:focus { border-color: var(--accent2); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+  select option { background: var(--bg); }
+
+  .btn {
+    border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 0.4rem;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #0e0f13;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+  .btn-primary:hover { background: #e8d458; transform: translateY(-1px); }
+  .btn-sm {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 0.3rem 0.6rem;
+    font-size: 0.78rem;
+  }
+  .btn-sm:hover { border-color: var(--accent2); color: var(--text); }
+  .btn-danger { background: rgba(240,106,106,0.12); border: 1px solid rgba(240,106,106,0.3); color: var(--danger); }
+  .btn-danger:hover { background: rgba(240,106,106,0.2); }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 0.3rem;
+    margin-bottom: 1.2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.3rem;
+  }
+  .tab {
+    flex: 1; padding: 0.5rem;
+    text-align: center;
+    font-size: 0.82rem; font-weight: 500;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--muted);
+  }
+  .tab.active { background: var(--accent2); color: #fff; }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* TASK LIST */
+  .task-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+  .task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    display: flex; align-items: center; gap: 0.8rem;
+    transition: all 0.25s;
+    animation: fadeIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .task-card::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+  }
+  .task-card.priority-High::before { background: var(--high); }
+  .task-card.priority-Medium::before { background: var(--med); }
+  .task-card.priority-Low::before { background: var(--low); }
+  .task-card:hover { border-color: var(--accent2); transform: translateX(2px); }
+  .task-card.done { opacity: 0.5; }
+  .task-card.done .task-name { text-decoration: line-through; }
+
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  .task-check {
+    width: 20px; height: 20px; min-width: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .task-check:hover { border-color: var(--accent3); }
+  .task-check.checked { background: var(--accent3); border-color: var(--accent3); }
+  .task-check.checked::after { content: '✓'; color: #0e0f13; font-size: 0.7rem; font-weight: 700; }
+
+  .task-info { flex: 1; min-width: 0; }
+  .task-name { font-weight: 500; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-meta { display: flex; gap: 0.5rem; margin-top: 0.25rem; flex-wrap: wrap; }
+  .tag {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    font-family: 'DM Mono', monospace;
+  }
+  .tag-high { background: rgba(240,106,106,0.15); color: var(--high); }
+  .tag-medium { background: rgba(240,169,106,0.15); color: var(--med); }
+  .tag-low { background: rgba(76,240,176,0.15); color: var(--low); }
+  .tag-date { background: var(--surface2); color: var(--muted); }
+  .tag-overdue { background: rgba(240,106,106,0.2); color: var(--danger); }
+
+  .task-actions { display: flex; gap: 0.3rem; }
+
+  .empty-state {
+    text-align: center; padding: 3rem 1rem;
+    color: var(--muted);
+  }
+  .empty-state .emoji { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  .empty-state p { font-size: 0.88rem; }
+
+  /* POMODORO TIMER */
+  .timer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+  .timer-display {
+    font-family: 'DM Mono', monospace;
+    font-size: 3rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin: 0.8rem 0;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+  .timer-mode {
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+  .timer-ring {
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg);
+    border: 2px solid var(--border);
+  }
+  .timer-ring svg {
+    position: absolute; top: -2px; left: -2px;
+    transform: rotate(-90deg);
+  }
+  .timer-ring-circle {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 4;
+    stroke-dasharray: 370;
+    stroke-dashoffset: 0;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.5s;
+  }
+  .timer-ring-circle.break { stroke: var(--accent3); }
+  .timer-inner { font-family: 'DM Mono', monospace; font-size: 1.6rem; font-weight: 500; }
+  .timer-controls { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.8rem; }
+  .btn-timer {
+    border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    border-radius: 8px;
+    transition: all 0.2s;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  .btn-start { background: var(--accent2); color: #fff; }
+  .btn-start:hover { background: #9080f9; }
+  .btn-reset { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); }
+  .btn-reset:hover { color: var(--text); }
+  .session-count {
+    font-size: 0.75rem; color: var(--muted);
+    margin-top: 0.6rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* PROGRESS */
+  .progress-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.2rem;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+  }
+  .stat-label { font-size: 0.82rem; color: var(--muted); }
+  .stat-value { font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 500; }
+  .progress-bar-wrap {
+    background: var(--bg);
+    border-radius: 20px;
+    height: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent3));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+    min-width: 0;
+  }
+  .streak-badge {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: rgba(240,224,106,0.08);
+    border: 1px solid rgba(240,224,106,0.2);
+    border-radius: 8px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+  }
+  .streak-num { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--accent); }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.show { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    width: 340px;
+    transform: scale(0.95);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.show .modal { transform: scale(1); }
+  .modal h3 { font-family: 'Syne', sans-serif; font-size: 1rem; margin-bottom: 0.8rem; }
+  .modal input, .modal select { margin-bottom: 0.6rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.8rem; }
+
+  /* RESPONSIVE / MOBILE */
+  @media (max-width: 768px) {
+    .app-grid { grid-template-columns: 1fr; }
+    .sidebar { border-top: 1px solid var(--border); }
+    .form-row { grid-template-columns: 1fr; }
+    .form-row .btn-primary { width: 100%; justify-content: center; }
+    header { padding: 1rem 1.2rem; }
+    .main-panel { padding: 1rem 1rem 2rem; }
+    .sidebar { padding: 1rem; }
+    .timer-display { font-size: 2.2rem; }
+    .timer-ring { width: 100px; height: 100px; }
+    .timer-ring svg { width: 104px; height: 104px; }
+  }
+
+  /* PWA install banner */
+  #install-banner {
+    display: none;
+    position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--accent2);
+    border-radius: 12px;
+    padding: 0.8rem 1.2rem;
+    z-index: 300;
+    gap: 0.8rem; align-items: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    width: calc(100% - 2rem); max-width: 380px;
+    animation: slideUp 0.4s ease;
+  }
+  #install-banner.visible { display: flex; }
+  @keyframes slideUp { from { transform: translateX(-50%) translateY(20px); opacity:0; } to { transform: translateX(-50%) translateY(0); opacity:1; } }
+  #install-banner p { flex:1; font-size: 0.85rem; }
+  #install-banner strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Study<span>Flow</span></div>
+  <div class="date-chip" id="header-date"></div>
+</header>
+
+<div id="alerts-banner" class="hidden">
+  <span>⚠</span>
+  <span id="alert-text"></span>
+</div>
+
+<div class="app-grid">
+  <!-- MAIN -->
+  <div class="main-panel">
+    <!-- ADD TASK FORM -->
+    <div class="task-form">
+      <h2>➕ Add Task</h2>
+      <div class="form-row">
+        <input type="text" id="task-input" placeholder="e.g. Complete Maths assignment..." />
+        <input type="date" id="task-date" />
+        <button class="btn btn-primary" onclick="addTask()">Add</button>
+      </div>
+      <div class="form-row-2">
+        <select id="task-priority">
+          <option value="High">🔴 High Priority</option>
+          <option value="Medium" selected>🟡 Medium Priority</option>
+          <option value="Low">🟢 Low Priority</option>
+        </select>
+        <select id="task-subject">
+          <option value="General">📚 General</option>
+          <option value="Maths">📐 Maths</option>
+          <option value="Science">🔬 Science</option>
+          <option value="English">📖 English</option>
+          <option value="History">🏛️ History</option>
+          <option value="Project">💻 Project</option>
+          <option value="Other">✏️ Other</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('today')">📅 Today</div>
+      <div class="tab" onclick="switchTab('all')">📋 All Tasks</div>
+      <div class="tab" onclick="switchTab('done')">✅ Completed</div>
+    </div>
+
+    <!-- TASK LIST -->
+    <div class="task-list" id="task-list"></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <!-- TIMER -->
+    <div class="timer-card">
+      <div class="section-title">⏱ Focus Timer</div>
+      <div class="timer-ring">
+        <svg width="124" height="124">
+          <circle cx="62" cy="62" r="59" fill="none" stroke="#2a2d3a" stroke-width="4"/>
+          <circle class="timer-ring-circle" id="ring-circle" cx="62" cy="62" r="59"/>
+        </svg>
+        <div class="timer-inner" id="timer-display">25:00</div>
+      </div>
+      <div class="timer-mode" id="timer-mode-label">STUDY SESSION</div>
+      <div class="timer-controls">
+        <button class="btn-timer btn-start" id="timer-btn" onclick="toggleTimer()">▶ Start</button>
+        <button class="btn-timer btn-reset" onclick="resetTimer()">↺ Reset</button>
+      </div>
+      <div class="session-count" id="session-count">Sessions today: 0</div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="progress-card">
+      <div class="section-title">📊 Today's Progress</div>
+      <div class="stat-row">
+        <span class="stat-label">Tasks done</span>
+        <span class="stat-value" id="stat-done">0 / 0</span>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Overdue</span>
+        <span class="stat-value" id="stat-overdue" style="color:var(--danger)">0</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">High priority pending</span>
+        <span class="stat-value" id="stat-high">0</span>
+      </div>
+      <div class="streak-badge">
+        <span>🔥</span>
+        <span>Streak:</span>
+        <span class="streak-num" id="streak-count">0 days</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>✏️ Edit Task</h3>
+    <input type="text" id="edit-name" placeholder="Task name" />
+    <input type="date" id="edit-date" />
+    <select id="edit-priority">
+      <option value="High">🔴 High</option>
+      <option value="Medium">🟡 Medium</option>
+      <option value="Low">🟢 Low</option>
+    </select>
+    <select id="edit-subject">
+      <option value="General">📚 General</option>
+      <option value="Maths">📐 Maths</option>
+      <option value="Science">🔬 Science</option>
+      <option value="English">📖 English</option>
+      <option value="History">🏛️ History</option>
+      <option value="Project">💻 Project</option>
+      <option value="Other">✏️ Other</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="install-banner">
+  <p>📲 Add <strong>StudyFlow</strong> to your home screen!</p>
+  <button class="btn btn-primary" id="install-btn" style="white-space:nowrap">Install</button>
+  <button class="btn btn-sm" onclick="document.getElementById('install-banner').classList.remove('visible')" style="padding:0.3rem 0.5rem">✕</button>
+</div>
+
+<script>
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// PWA Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('install-banner').classList.add('visible');
+});
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').classList.remove('visible');
+});
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').classList.remove('visible');
+});
+// ─── STATE ────────────────────────────────────────────────
+let tasks = JSON.parse(localStorage.getItem('sf_tasks') || '[]');
+let timerInterval = null;
+let timerRunning = false;
+let timerMode = 'study'; // study | break
+let timerSeconds = 25 * 60;
+let totalSeconds = 25 * 60;
+let sessionsToday = parseInt(localStorage.getItem('sf_sessions') || '0');
+let currentTab = 'today';
+let editId = null;
+
+// Streak
+let lastDate = localStorage.getItem('sf_last_date');
+let today = new Date().toISOString().slice(0,10);
+let streak = parseInt(localStorage.getItem('sf_streak') || '0');
+
+// ─── INIT ─────────────────────────────────────────────────
+window.onload = () => {
+  document.getElementById('task-date').value = today;
+  document.getElementById('header-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'short' });
+  renderTasks();
+  updateStats();
+  updateAlerts();
+  document.getElementById('session-count').textContent = `Sessions today: ${sessionsToday}`;
+  document.getElementById('streak-count').textContent = `${streak} days`;
+};
+
+// ─── TASKS ────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('sf_tasks', JSON.stringify(tasks));
+  updateStats();
+  updateAlerts();
+}
+
+function addTask() {
+  const name = document.getElementById('task-input').value.trim();
+  if (!name) { document.getElementById('task-input').focus(); return; }
+  const task = {
+    id: Date.now(),
+    name,
+    date: document.getElementById('task-date').value,
+    priority: document.getElementById('task-priority').value,
+    subject: document.getElementById('task-subject').value,
+    done: false,
+    created: today
+  };
+  tasks.unshift(task);
+  save();
+  document.getElementById('task-input').value = '';
+  renderTasks();
+}
+
+document.getElementById('task-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTask();
+});
+
+function toggleDone(id) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.done = !t.done; save(); renderTasks(); }
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  save(); renderTasks();
+}
+
+function openEdit(id) {
+  editId = id;
+  const t = tasks.find(t => t.id === id);
+  document.getElementById('edit-name').value = t.name;
+  document.getElementById('edit-date').value = t.date;
+  document.getElementById('edit-priority').value = t.priority;
+  document.getElementById('edit-subject').value = t.subject;
+  document.getElementById('edit-modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('edit-modal').classList.remove('show');
+  editId = null;
+}
+
+function saveEdit() {
+  const t = tasks.find(t => t.id === editId);
+  if (!t) return;
+  t.name = document.getElementById('edit-name').value.trim() || t.name;
+  t.date = document.getElementById('edit-date').value;
+  t.priority = document.getElementById('edit-priority').value;
+  t.subject = document.getElementById('edit-subject').value;
+  save(); renderTasks(); closeModal();
+}
+
+document.getElementById('edit-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-modal')) closeModal();
+});
+
+// ─── RENDER ───────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['today','all','done'][i] === tab);
+  });
+  renderTasks();
+}
+
+function renderTasks() {
+  const list = document.getElementById('task-list');
+  let filtered;
+  if (currentTab === 'today') filtered = tasks.filter(t => t.date === today && !t.done);
+  else if (currentTab === 'all') filtered = tasks.filter(t => !t.done);
+  else filtered = tasks.filter(t => t.done);
+
+  if (!filtered.length) {
+    const msgs = { today: ['No tasks for today! 🎉', 'Add one above to get started.'], all: ['All clear! 🌟', 'Nothing pending. Nice.'], done: ['No completed tasks yet.', 'Finish something to see it here!'] };
+    list.innerHTML = `<div class="empty-state"><div class="emoji">${currentTab==='done'?'📭':'✨'}</div><p>${msgs[currentTab][0]}<br>${msgs[currentTab][1]}</p></div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(t => {
+    const overdue = t.date && t.date < today && !t.done;
+    const dateLabel = t.date ? (t.date === today ? 'Today' : overdue ? 'Overdue' : t.date) : '';
+    const dateClass = overdue ? 'tag-overdue' : 'tag-date';
+    const pClass = `tag-${t.priority.toLowerCase()}`;
+    return `
+    <div class="task-card priority-${t.priority} ${t.done?'done':''}">
+      <div class="task-check ${t.done?'checked':''}" onclick="toggleDone(${t.id})"></div>
+      <div class="task-info">
+        <div class="task-name">${t.name}</div>
+        <div class="task-meta">
+          <span class="tag ${pClass}">${t.priority}</span>
+          <span class="tag tag-date">${t.subject}</span>
+          ${dateLabel ? `<span class="tag ${dateClass}">${dateLabel}</span>` : ''}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="btn btn-sm" onclick="openEdit(${t.id})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteTask(${t.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── STATS ────────────────────────────────────────────────
+function updateStats() {
+  const todayTasks = tasks.filter(t => t.date === today);
+  const done = tasks.filter(t => t.done && t.created === today).length;
+  const total = todayTasks.length;
+  const pct = total ? Math.round((todayTasks.filter(t=>t.done).length / total)*100) : 0;
+  const overdue = tasks.filter(t => !t.done && t.date && t.date < today).length;
+  const highPending = tasks.filter(t => !t.done && t.priority === 'High').length;
+
+  document.getElementById('stat-done').textContent = `${todayTasks.filter(t=>t.done).length} / ${total}`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('stat-overdue').textContent = overdue;
+  document.getElementById('stat-high').textContent = highPending;
+
+  // Streak
+  if (lastDate !== today && done > 0) {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const yStr = yesterday.toISOString().slice(0,10);
+    if (lastDate === yStr) streak++; else if (lastDate !== today) streak = 1;
+    localStorage.setItem('sf_streak', streak);
+    localStorage.setItem('sf_last_date', today);
+    lastDate = today;
+    document.getElementById('streak-count').textContent = `${streak} days`;
+  }
+}
+
+// ─── ALERTS ───────────────────────────────────────────────
+function updateAlerts() {
+  const banner = document.getElementById('alerts-banner');
+  const todayCount = tasks.filter(t => t.date === today && !t.done).length;
+  const overdue = tasks.filter(t => !t.done && t.date && t.date < today).length;
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  const tmrStr = tomorrow.toISOString().slice(0,10);
+  const tmrHigh = tasks.filter(t => !t.done && t.date === tmrStr && t.priority === 'High').length;
+
+  const msgs = [];
+  if (overdue > 0) msgs.push(`${overdue} overdue task${overdue>1?'s':''} need your attention!`);
+  if (todayCount > 6) msgs.push(`You have ${todayCount} tasks today — consider rescheduling some.`);
+  if (tmrHigh > 0) msgs.push(`${tmrHigh} high-priority task${tmrHigh>1?'s':''} due tomorrow!`);
+
+  if (msgs.length) {
+    banner.classList.remove('hidden');
+    document.getElementById('alert-text').textContent = msgs.join(' • ');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+// ─── TIMER ────────────────────────────────────────────────
+const STUDY_TIME = 25 * 60;
+const BREAK_TIME = 5 * 60;
+const CIRCUMFERENCE = 2 * Math.PI * 59; // 370.7
+
+function toggleTimer() {
+  if (timerRunning) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    document.getElementById('timer-btn').textContent = '▶ Resume';
+  } else {
+    timerRunning = true;
+    document.getElementById('timer-btn').textContent = '⏸ Pause';
+    timerInterval = setInterval(tick, 1000);
+  }
+}
+
+function tick() {
+  if (timerSeconds <= 0) {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    if (timerMode === 'study') {
+      sessionsToday++;
+      localStorage.setItem('sf_sessions', sessionsToday);
+      document.getElementById('session-count').textContent = `Sessions today: ${sessionsToday}`;
+      timerMode = 'break';
+      timerSeconds = BREAK_TIME;
+      totalSeconds = BREAK_TIME;
+      document.getElementById('timer-mode-label').textContent = 'BREAK TIME ☕';
+      document.getElementById('ring-circle').classList.add('break');
+      alert('🎉 Study session done! Take a 5-minute break.');
+    } else {
+      timerMode = 'study';
+      timerSeconds = STUDY_TIME;
+      totalSeconds = STUDY_TIME;
+      document.getElementById('timer-mode-label').textContent = 'STUDY SESSION';
+      document.getElementById('ring-circle').classList.remove('break');
+      alert('💪 Break over! Ready to focus again?');
+    }
+    document.getElementById('timer-btn').textContent = '▶ Start';
+    updateDisplay();
+    return;
+  }
+  timerSeconds--;
+  updateDisplay();
+}
+
+function resetTimer() {
+  clearInterval(timerInterval);
+  timerRunning = false;
+  timerMode = 'study';
+  timerSeconds = STUDY_TIME;
+  totalSeconds = STUDY_TIME;
+  document.getElementById('timer-btn').textContent = '▶ Start';
+  document.getElementById('timer-mode-label').textContent = 'STUDY SESSION';
+  document.getElementById('ring-circle').classList.remove('break');
+  updateDisplay();
+}
+
+function updateDisplay() {
+  const m = String(Math.floor(timerSeconds / 60)).padStart(2,'0');
+  const s = String(timerSeconds % 60).padStart(2,'0');
+  document.getElementById('timer-display').textContent = `${m}:${s}`;
+  const progress = timerSeconds / totalSeconds;
+  const offset = CIRCUMFERENCE * progress;
+  document.getElementById('ring-circle').style.strokeDasharray = `${CIRCUMFERENCE}`;
+  document.getElementById('ring-circle').style.strokeDashoffset = `${CIRCUMFERENCE - offset}`;
+}
+
+updateDisplay();
+</script>
+</body>
+</html>
