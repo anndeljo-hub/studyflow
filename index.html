@@ -54,7 +54,8 @@ html, body { height: 100%; background: var(--bg); color: var(--text); font-famil
 .btn-primary:active { transform:scale(0.97); }
 .btn-ghost { background:var(--surface2); border:1px solid var(--border); color:var(--muted); padding:0.5rem 0.9rem; font-size:0.82rem; }
 
-input[type="text"], input[type="date"], select {
+input[type="time"] { color-scheme: dark; }
+input[type="text"], input[type="date"], input[type="time"], select {
   width:100%; background:var(--bg); border:1px solid var(--border); border-radius:10px;
   padding:0.75rem 1rem; color:var(--text); font-family:'DM Sans',sans-serif; font-size:0.9rem;
   outline:none; transition:border-color 0.2s; margin-bottom:0.6rem; -webkit-appearance:none;
@@ -174,6 +175,16 @@ select option { background:#1e2029; }
       <div class="card-title">➕ Add Task</div>
       <input type="text" id="task-input" placeholder="e.g. Complete Maths assignment..." />
       <input type="date" id="task-date" />
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.6rem">
+        <div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.3rem;padding-left:0.2rem">⏰ Start Time</div>
+          <input type="time" id="task-time-start" style="margin-bottom:0" />
+        </div>
+        <div>
+          <div style="font-size:0.7rem;color:var(--muted);margin-bottom:0.3rem;padding-left:0.2rem">🏁 End Time</div>
+          <input type="time" id="task-time-end" style="margin-bottom:0" />
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
         <select id="task-priority">
           <option value="High">🔴 High</option>
@@ -340,7 +351,7 @@ function save() { localStorage.setItem('sf_tasks',JSON.stringify(tasks)); update
 function addTask() {
   const name = document.getElementById('task-input').value.trim();
   if (!name) { document.getElementById('task-input').focus(); return; }
-  tasks.unshift({ id:Date.now(), name, date:document.getElementById('task-date').value, priority:document.getElementById('task-priority').value, subject:document.getElementById('task-subject').value, done:false, created:today });
+  tasks.unshift({ id:Date.now(), name, date:document.getElementById('task-date').value, timeStart:document.getElementById('task-time-start').value, timeEnd:document.getElementById('task-time-end').value, priority:document.getElementById('task-priority').value, subject:document.getElementById('task-subject').value, done:false, created:today });
   save(); renderTasks(); document.getElementById('task-input').value = '';
 }
 
@@ -386,6 +397,8 @@ function renderTasks() {
     const pCls = {High:'tag-high',Medium:'tag-med',Low:'tag-low'}[t.priority];
     const dateText = t.date===today?'Today':overdue?'Overdue':t.date;
     const dCls = overdue?'tag-over':'tag-due';
+    const fmt = v => { if(!v) return ''; const [h,m]=v.split(':'); const ampm=+h>=12?'PM':'AM'; return `${(+h%12||12)}:${m}${ampm}`; };
+    const timeSlot = t.timeStart ? `${fmt(t.timeStart)}${t.timeEnd?' – '+fmt(t.timeEnd):''}` : '';
     return `<div class="task-card p-${t.priority} ${t.done?'done':''}">
       <div class="check-circle ${t.done?'checked':''}" onclick="toggleDone(${t.id})"></div>
       <div class="task-body">
@@ -394,6 +407,7 @@ function renderTasks() {
           <span class="tag ${pCls}">${t.priority}</span>
           <span class="tag tag-sub">${t.subject}</span>
           ${t.date?`<span class="tag ${dCls}">${dateText}</span>`:''}
+          ${timeSlot?`<span class="tag tag-sub">🕐 ${timeSlot}</span>`:''}
         </div>
       </div>
       <button class="task-del" onclick="deleteTask(${t.id})">✕</button>
